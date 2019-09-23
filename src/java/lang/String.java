@@ -124,6 +124,7 @@ import java.util.stream.StreamSupport;
  * 2.String（内置的value）永远取决于系统，在windows上是UTF-16小端
  * 3 String外面的byte[]，大小端取决于当时转换中所用的编码格式
  */
+//Final 类不能被继承，java 对 String 的处理和一般 class 有所不同，jdk 11 String 类有16种构造方法
 public final class String implements Serializable, Comparable<String>, CharSequence {
     
     /**
@@ -136,23 +137,25 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * @since 1.2
      */
     public static final Comparator<String> CASE_INSENSITIVE_ORDER = new CaseInsensitiveComparator();
-    
+
     /**
-     * If String compaction is disabled, the bytes in {@code value} are always encoded in UTF16.
+     * If String compaction(压（夯，击）实；压缩) is disabled, the bytes in {@code value} are always encoded in UTF16.
      * For methods with several possible implementation paths, when String compaction is disabled, only one code path is taken.
      *
-     * The instance field value is generally opaque to optimizing JIT compilers.
-     * Therefore, in performance-sensitive place, an explicit check of the static boolean {@code COMPACT_STRINGS} is done
+     * The instance field value is generally opaque（不透明的;   不透光的;） to optimizing JIT compilers(JIT编译器，英文写作Just-In-Time Compiler，中文意思是即时编译器).
+     * （实例字段值通常对于即时编译器是不清楚的）
+     * Therefore, in performance-sensitive place（性能敏感的地方）, an explicit check of the static boolean {@code COMPACT_STRINGS} is done
      * first before checking the {@code coder} field since the static boolean {@code COMPACT_STRINGS}
+     *（因此，在性能敏感的地方，在检查code field 前会先对静态布尔值的做显示检查）
      * would be constant folded away by an optimizing JIT compiler.
-     *
-     * The idioms for these cases are as follows.
+     *因为静态布尔值会被优化的即时编译器不断折叠
+     * The idioms(语法) for these cases are as follows(如下;分别是).
      *
      * For code such as:
      *
      * if (coder == LATIN1) { ... }
      *
-     * can be written more optimally as
+     * can be written more optimally(最佳) as
      *
      * if (coder() == LATIN1) { ... }
      *
@@ -160,14 +163,16 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      *
      * if (COMPACT_STRINGS && coder == LATIN1) { ... }
      *
-     * An optimizing JIT compiler can fold the above conditional as:
+     * An optimizing（使最优化;充分利用） JIT compiler can fold the above conditional as:
      *
      * COMPACT_STRINGS == true  => if (coder == LATIN1) { ... }
      * COMPACT_STRINGS == false => if (false)           { ... }
      *
-     * @implNote The actual value for this field is injected by JVM.
+     * @implNote The actual value for this field is injected by JVM.（这个字段的实际值是jvm注入的）
      * The static initialization block is used to set the value here to communicate that this static final field is not statically foldable,
      * and to avoid any possible circular dependency during vm initialization.
+     * 静态初始化块用于设置此处的值，以告知此静态常量字段不可静态折叠，
+     * 避免在vm初始化期间任何可能的循环依赖
      */
     // 如果禁用字符串压缩，则其字符始终以UTF-16编码，默认设置为true
     static final boolean COMPACT_STRINGS;
@@ -214,6 +219,16 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * 如果输入是：String s = "\u56DB\u6761\uD869\uDEA5"; // "四条𪚥"，"𪚥"在UTF16中占4个字节
      * 则value中存储（十六进制）：[DB, 56, 61, 67, 69, D8, A5, DE]
      */
+    /**
+     * 1. String 的内容为什么是不可更改的？
+     * 为什么 value 是 final 引用却没有赋初始值
+     * 因为 final 变量可以在构造方法中进行赋值，value 的所有赋值都在 String 的几个构造方法中。
+     * 这样从代码逻辑上控制了 String 不可变
+     *
+     * 2. java 中 "abc" 这样创建的字符串的创建过程如下：
+     *  “abc” 会被放到字符串常量池中，称为字面量。所有的 String s = "abc" 的字符串的引用都指向字符串常量池中。
+     */
+    //从JDK9开始，String对象不再以char[]形式存储，而是以名为value的byte[]形式存储。四川农信用的是jdk1.8，所以出现了大量的char[] 占用内存最大
     @Stable
     private final byte[] value;
     
@@ -271,6 +286,20 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      *
      * @param original A {@code String}
      */
+    /**
+     * 3. String(String string) 的构造方法是如何工作的？
+     *      *  public String（String original）{
+     *      *      this.value = original.value;
+     *      *      this.hash = original.hash;
+     *      *  }
+     *      *  这说明用 String 去 new String 构造新的对象时，确实会产生新的对象，而且新的 value 和 hash 值都和 原 String 对象一样。
+     *      *  char[] value = 是指向同一个
+     *      *  当然 String 还有其他的构造方法， 都会去 new char[]。
+     * 4. 一个线程中内容为“abc” 的 String 对象， 存储的 char[] 是否是同一个，char[] 数组是否一定在字符串常量池中？
+     *  由于 String 产生的 string 里面的 char[] 是同一个，其他方式产生的都是新的。"" 包裹产生的字符串会在常量池中，其他的都是正常存在堆中。所以堆中可以有n份""abc
+     *  串，常量池中“abc”永远只有一个，可以被多个引用所指向。
+     *
+     *  */
     // ▶ 2 构造String的副本（哈希值都一样）
     @HotSpotIntrinsicCandidate
     public String(String original) {
@@ -799,20 +828,24 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     
     
     /*▼ 获取char/char[] ████████████████████████████████████████████████████████████████████████████████┓ */
-    
+
     /**
      * Returns the {@code char} value at the specified index.
      * An index ranges from {@code 0} to {@code length() - 1}.
+     * （用于返回指定索引处的自费，索引范围从0 到 length() - 1）
      * The first {@code char} value of the sequence is at index {@code 0}, the next at index {@code 1}, and so on, as for array indexing.
      *
-     * If the {@code char} value specified by the index is a <a href="Character.html#unicode">surrogate</a>, the surrogate value is returned.
-     *
+     * If the {@code char} value specified by the index is a <a href="Character.html#unicode">surrogate（替代的;代用的）</a>, the surrogate value is returned.
+     *（如果索引指定的值是代理项，则返回代理项值）
      * @param index the index of the {@code char} value.
      *
      * @return the {@code char} value at the specified index of this string. The first {@code char} value is at index {@code 0}.
      *
-     * @throws IndexOutOfBoundsException if the {@code index} argument is negative or not less than the length of this string.
+     * @throws IndexOutOfBoundsException if the {@code index} argument is negative（负数） or not less than the length of this string.（不小于）
      */
+    // 将String内部的字节转换为char后返回
+
+     //jdk 11 跟jdk 8 差别还蛮大的，jdk8的代码要更容易看懂
     // 将String内部的字节转换为char后返回
     public char charAt(int index) {
         // 可以用压缩的Latin1字符集表示
@@ -3068,6 +3101,10 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * @return the length of the sequence of characters represented by this object.
      */
     // 返回String中包含的char的个数，但不一定是Unicode符号个数。
+    /**
+     * 用于获取有关对象的信息的方法称为访问器方法。
+     * 比如 length() ,它返回字符串对象包含的字符数
+     */
     public int length() {
         return value.length >> coder();
     }

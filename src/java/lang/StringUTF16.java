@@ -59,6 +59,11 @@ final class StringUTF16 {
     /*▼ 获取char/char[] ████████████████████████████████████████████████████████████████████████████████┓ */
     
     // 将UTF16-String内部的字节转换为char后返回
+
+    /**
+     * Trusted caller（打电话者;访问者;来访者） missed bounds（限制范围;极限） check
+     * 可信调用方未命中界限检查
+     */
     @HotSpotIntrinsicCandidate
     static char getChar(byte[] val, int index) {
         assert index >= 0 && index < length(val) : "Trusted caller missed bounds check";
