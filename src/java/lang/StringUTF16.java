@@ -1463,7 +1463,7 @@ startSearchForLastChar:
         if(len > MAX_LENGTH) {
             throw new OutOfMemoryError("UTF16 String size is " + len + ", should be less than " + MAX_LENGTH);
         }
-        return new byte[len << 1];
+        return new byte[len << 1]; //位运算的运算效率比直接对数字进行加减乘除高很多:乘法 len * (2^n)
     }
     
     // 用val在[index, index+len)范围内的byte值创建String

@@ -379,7 +379,7 @@ final class StringLatin1 {
                 // 都转为大写形式
                 char c1 = (char) CharacterDataLatin1.instance.toUpperCase(getChar(value, k));
                 char c2 = (char) CharacterDataLatin1.instance.toUpperCase(getChar(other, k));
-                if(c1 != c2) {
+                if(c1 != c2) {//为什么转为大写之后还要转为小写比较吗？大写不一样小写会一样？
                     // 都转为小写形式
                     c1 = Character.toLowerCase(c1);
                     c2 = Character.toLowerCase(c2);
@@ -388,7 +388,9 @@ final class StringLatin1 {
                     }
                 }
             }
-        }
+        }       //有三种可能性①如果有一个空字符串，则直接走len1-len2.
+        // ②abc, abcd,前面比较了3次，没有走return c1-c2，那就会走len1-len2。比如（）
+        // ③abc,adc比较会走c1-c2
         return len1 - len2;
     }
     

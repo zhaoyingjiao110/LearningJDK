@@ -2794,7 +2794,8 @@ public class Arrays {
      */
     // 截取original中newLength个byte值
     public static byte[] copyOf(byte[] original, int newLength) {
-        byte[] copy = new byte[newLength];
+        byte[] copy = new byte[newLength];   
+        //数组复制，从 original 的0索引处复制 original.length 个元素放入 copy 的 0 索引处
         System.arraycopy(original, 0, copy, 0, Math.min(original.length, newLength));
         return copy;
     }

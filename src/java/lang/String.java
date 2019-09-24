@@ -810,7 +810,8 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     // 拷贝String中的字节到dst数组
     void getBytes(byte dst[], int dstBegin, byte coder) {
         if(coder() == coder) {
-            System.arraycopy(value, 0, dst, dstBegin << coder, value.length);
+            //数组复制：从 value 的 0 出索引开始复制 value.length 个字符 到 dst 的 dstBegin * (2^coder) 处索引
+            System.arraycopy(value, 0, dst, dstBegin << coder, value.length);    //dstBegin * (2^coder)
         } else {
             /* 如果两个coder不同，则将源字符串当做LATIN-String对待 */
             // 从LATIN-String内部的字节转为UTF16-String内部的字节
@@ -2474,17 +2475,21 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      *
      * @return a string that represents the concatenation of this object's characters followed by the string argument's characters.
      */
-    // 将str拼接到原字符串末尾
+    // 将str拼接到原字符串末尾,并返回新的字符串，原字符串是不变的。
+    //①参数字符串长度为0，则返回当前字符串的引用
+    //②编码相同，则直接用 public static native void arraycopy(Object src, int srcPos, Object dest, int destPos, int length) copy 数组
+    //③编码不同， 统一用UTF16-String 编码后再copy数组。
     public String concat(String str) {
         int olen = str.length();
         if(olen == 0) {
             return this;
         }
-        if(coder() == str.coder()) {
+        if(coder() == str.coder()) {        //当前字符串的编码：LATIN1(0)或UTF16(1)
             byte[] val = this.value;
             byte[] oval = str.value;
             int len = val.length + oval.length;
-            byte[] buf = Arrays.copyOf(val, len);
+            byte[] buf = Arrays.copyOf(val, len);//这里实际是创建了 len 个长度的 buf ,copy 了 val 数组。
+            //数组复制，从 oval 的0索引处复制 oval.length 个元素放入 buf 的 val.length 索引处
             System.arraycopy(oval, 0, buf, val.length, oval.length);
             return new String(buf, coder);
         }
@@ -2493,7 +2498,9 @@ public final class String implements Serializable, Comparable<String>, CharSeque
         byte[] buf = StringUTF16.newBytesFor(len + olen);
         
         // 字符串类型不一样时，统一转为UTF16-String
+        //把字符类型转为UTF16-String，并从当前 value 的 0 处索引开始复制 value.length 个字符 到 dst 的 0 处索引
         getBytes(buf, 0, UTF16);
+        //把字符类型转为UTF16-String,并从 str 的0处索引开始复制str.length 个字符到 buf 的len * (2 ^coder)处索引
         str.getBytes(buf, len, UTF16);
         return new String(buf, UTF16);
     }
@@ -2695,15 +2702,16 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     /*▼ 比较 ████████████████████████████████████████████████████████████████████████████████┓ */
     
     /**
-     * Compares two strings lexicographically.
+     * Compares two strings lexicographically（字典序;按字典顺序）.
+     * 从词汇上比较两个字符串
      * The comparison is based on the Unicode value of each character in the strings.
      * The character sequence represented by this {@code String} object is compared lexicographically to the character sequence
      * represented by the argument string.
-     * The result is a negative integer if this {@code String} object lexicographically precedes the argument string.
+     * The result is a negative integer if this {@code String} object lexicographically precedes（先于） the argument string.
      * The result is a positive integer if this {@code String} object lexicographically follows the argument string.
      * The result is zero if the strings are equal; {@code compareTo} returns {@code 0} exactly when the {@link #equals(Object)} method would return {@code true}.
      * <p>
-     * This is the definition of lexicographic ordering.
+     * This is the definition of lexicographic ordering. （这就是词典排序的定义）
      * If two strings are different, then either they have different characters at some index that is a valid index for both strings,
      * or their lengths are different, or both.
      * If they have different characters at one or more index positions, let <i>k</i> be the smallest such index;
@@ -2719,7 +2727,7 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * this.length()-anotherString.length()
      * </pre></blockquote>
      *
-     * <p>For finer-grained String comparison, refer to
+     * <p>For finer-grained String（细粒度字符串） comparison, refer to （参照）
      * {@link java.text.Collator}.
      *
      * @param anotherString the {@code String} to be compared.
@@ -2728,7 +2736,8 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * a value less than {@code 0} if this string is lexicographically less than the string argument;
      * and a value greater than {@code 0} if this string is lexicographically greater than the string argument.
      */
-    // 比较两个String
+    // 比较两个String，印象里以为只会返回1， -1，0三个值，原来会返回字符的编码的差值（返回值=原字符串与参数字符串中第一个不同字符相差的ASCII码值，为原减参），
+    // 或者是字符串长度的差值（字符串前面的字符相同但字符串长度不同时返回字符串相差位数而并非 ASCII 码差值。）
     public int compareTo(String anotherString) {
         byte v1[] = value;
         byte v2[] = anotherString.value;
