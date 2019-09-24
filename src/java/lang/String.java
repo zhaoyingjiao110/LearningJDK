@@ -970,6 +970,9 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      *
      * @return a {@code String} that contains the characters of the character array.
      */
+    //返回指定数组中表示该字符序列的字符串
+    //char[] Str1 = {'h', 'e', 'l', 'l', 'o'};
+    //String Str2 = Str2.copyValueOf( Str1 );//Str2="hello";
     public static String copyValueOf(char data[]) {
         return new String(data);
     }
@@ -978,7 +981,7 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * Equivalent to {@link #valueOf(char[], int, int)}.
      *
      * @param data   the character array.
-     * @param offset initial offset of the subarray.
+     * @param offset initial offset（开端;出发） of the subarray.
      * @param count  length of the subarray.
      *
      * @return a {@code String} that contains the characters of the specified subarray of the character array.
@@ -986,6 +989,8 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * @throws IndexOutOfBoundsException if {@code offset} is negative,
      * or {@code count} is negative, or {@code offset+count} is larger than {@code data.length}.
      */
+    //char[] Str1 = {'h', 'e', 'l', 'l', 'o'};
+    //String Str2 = Str2.copyValueOf( Str1, 1, 2);//Str2="el";       从 索引1 开始，copy 2 个字符
     public static String copyValueOf(char data[], int offset, int count) {
         return new String(data, offset, count);
     }
@@ -2975,9 +2980,9 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     /**
      * Compares this string to the specified {@code StringBuffer}.
      * The result is {@code true} if and only if this {@code String} represents the same sequence of characters as the specified {@code StringBuffer}.
-     * This method synchronizes on the {@code StringBuffer}.
+     * This method synchronizes（同步，在时间上一致，同速进行） on the {@code StringBuffer}.
      *
-     * <p>For finer-grained String comparison, refer to
+     * <p>For finer-grained细粒度() String comparison, refer to
      * {@link java.text.Collator}.
      *
      * @param sb The {@code StringBuffer} to compare this {@code String} against
@@ -3005,16 +3010,20 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * @return {@code true} if this {@code String} represents the same sequence of char values as the specified sequence, {@code false} otherwise
      *
      * @since 1.5
+     * ①参数是StringBuffer的判断
+     * ②参数是StringBuilder的判断
+     * ③参数是String的判断
+     * ④如果是其他的CharSequence实现类，则遍历，一个个字符进行比较，找到一个字符不相等则直接返回false
      */
     // 比较String和CharSequence的内容是否相等
-    public boolean contentEquals(CharSequence cs) {
+    public boolean contentEquals(CharSequence cs) { //StringBuffer, StringBuilder 都是 CharSequence 的子类
         // Argument is a StringBuffer, StringBuilder
         if(cs instanceof AbstractStringBuilder) {
-            if(cs instanceof StringBuffer) {
+            if(cs instanceof StringBuffer) { //StringBuffer 是线程安全的类
                 synchronized(cs) {
                     return nonSyncContentEquals((AbstractStringBuilder) cs);
                 }
-            } else {
+            } else {     //参数是 StringBuilder
                 return nonSyncContentEquals((AbstractStringBuilder) cs);
             }
         }
@@ -3030,8 +3039,8 @@ public final class String implements Serializable, Comparable<String>, CharSeque
             return false;
         }
         byte[] val = this.value;
-        // 可以用压缩的Latin1字符集表示
-        if(isLatin1()) {
+        // 可以用压缩的Latin1字符集表示，这里有区分不同的编码走不同的分支
+        if(isLatin1()) {   
             for(int i = 0; i < n; i++) {
                 if((val[i] & 0xff) != cs.charAt(i)) {
                     return false;
@@ -3045,6 +3054,16 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     }
     
     // 判等。如果是UTF-16字符串和AbstractStringBuilder比较，则一定返回false。
+
+    /**
+     * ①长度不相等，返回false
+     * ②编码一样，有字符不相等返回false
+     * ③当前String 的编码是UTF16，直接返回false
+     * ④ 什么时候会走到StringUTF16.contentEquals方法呢
+     * ⑤ 编码一样，相等返回true
+     * @param sb
+     * @return
+     */
     private boolean nonSyncContentEquals(AbstractStringBuilder sb) {
         int len = length();
         if(len != sb.length()) {
@@ -3062,7 +3081,7 @@ public final class String implements Serializable, Comparable<String>, CharSeque
         } else {
             if(!isLatin1()) {  // utf16 str and latin1 abs can never be "equal"
                 return false;
-            }
+            }                      //这里不是Latin1 和utf16不是二选一吗？为什么还会走到StringUTF16.contentEquals方法呢？
             return StringUTF16.contentEquals(v1, v2, len);
         }
         return true;
