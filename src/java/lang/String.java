@@ -2518,14 +2518,22 @@ public final class String implements Serializable, Comparable<String>, CharSeque
     
     /**
      * Tests if the substring of this string beginning at the specified index starts with the specified prefix.
-     *
-     * @param prefix  the prefix.
+     *测试此字符串中以指定索引开头的子字符串是否以指定前缀开头
+     * @param prefix  the prefix(前缀).
      * @param toffset where to begin looking in this string.
      *
      * @return {@code true} if the character sequence represented by the argument is a prefix of the substring of this object starting at index {@code toffset};
      * {@code false} otherwise. The result is {@code false} if {@code toffset} is negative or greater than the length of this {@code String} object;
      * otherwise the result is the same as the result of the expression
      * <pre> this.substring(toffset).startsWith(prefix) </pre>
+     * *@如果参数所表示的字符序列是从索引{@code toffset}开始的此对象的子字符串的前缀，则返回{@code true}；
+     * *{@code false}否则。如果{@code toffset}为负或大于此{@code string}对象的长度，则结果为{@code false}；
+     * *否则结果与表达式的结果相同
+     * abcdef, def.6-3,3
+     * ①toffset 为负数或者，toffset 加上偏移量的长度大于当前字符串的长度直接返回false。
+     * ②编码一致，Latin的编码就是toffset不变，如果是UTF16则要乘以2.有不相等的字符则返回false
+     * ③编码不一致，当前是Latin编码直接返回false
+     * ④编码不一致，当前是UTF16，则把prefix转成UTF-16比对
      */
     // 判断指定范围的字符串是否以prefix开头，从下标toffset处开始搜索
     public boolean startsWith(String prefix, int toffset) {
@@ -2538,14 +2546,14 @@ public final class String implements Serializable, Comparable<String>, CharSeque
         int po = 0;
         int pc = pa.length;
         if(coder() == prefix.coder()) {
-            int to = isLatin1() ? toffset : toffset << 1;
+            int to = isLatin1() ? toffset : toffset << 1;//toffset * (2)^1
             while(po < pc) {
                 if(ta[to++] != pa[po++]) {
                     return false;
                 }
             }
         } else {
-            // 可以用压缩的Latin1字符集表示
+            // 可以用压缩的Latin1字符集表示，为什么这里不把prefix转成Latin比对呢？
             if(isLatin1()) {  // && pcoder == UTF16
                 return false;
             }
@@ -2585,6 +2593,7 @@ public final class String implements Serializable, Comparable<String>, CharSeque
      * {@code false} otherwise.
      * Note that the result will be {@code true} if the argument is the empty string or is equal to this {@code String} object
      * as determined by the {@link #equals(Object)} method.
+     * 注意，如果参数是空字符串，或者等于此 String 对象（用 equals(Object) 方法确定），则结果为 true。
      */
     // 判断字符串是否以suffix结尾
     public boolean endsWith(String suffix) {
